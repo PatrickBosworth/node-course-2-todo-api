@@ -45,21 +45,32 @@ UserSchema.methods.generateAuthToken = function () {
   var access = 'auth';
 
 var userid = user._id.toHexString();
-var data = {
-  _id: userid,
-  access
-}
-
+var data = { _id: userid, access };
   var token = jwt.sign({data, access}, 'abc123').toString();
-
   user.tokens = user.tokens.concat([{access, token}]);
-//user.tokens.push({access, token});
-
   return user.save().then(() => {
     return token;
   }).catch((e) => {
     console.log('something failed here');
   })
+};
+
+UserSchema.statics.findByToken = function (token) {
+  var User = this;
+  var decoded;
+
+    try {
+      decoded = jwt.verify(token, 'abc123');
+  //    console.log(decoded.data._id);
+} catch (e) {
+      return Promise.reject('boohoo');
+      }
+
+    return User.findOne({
+      '_id': decoded.data._id, //for some reason this is not what AM has in his code.
+      'tokens.token': token, //need to reference data._id instead of just _id. version of mongoose maybe?
+      'tokens.access': 'auth'
+    });
 };
 
 var User = mongoose.model('Users', UserSchema);
